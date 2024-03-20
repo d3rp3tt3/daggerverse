@@ -5,9 +5,30 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"math"
+	"math/rand"
 )
 
 type GoCi struct{}
+
+// create a service from the production image
+func (m *GoCi) Serve(source *Directory) *Service {
+	return m.Package(source).AsService()
+}
+
+// publish an image
+func (m *GoCi) Publish(ctx context.Context, source *Directory) (string, error) {
+	return m.Package(source).
+		Publish(ctx, fmt.Sprintf("ttl.sh/myapp-%.0f:10m", math.Floor(rand.Float64()*10000000)))
+}
+
+// create a production image
+func (m *GoCi) Package(source *Directory) *Container {
+	return dag.Container().From("nginx:1.25-alpine").
+		WithDirectory("/usr/share/nginx/html", m.Build(source)).
+		WithExposedPort(80)
+}
 
 // create a production build
 func (m *GoCi) Build(source *Directory) *Directory {
