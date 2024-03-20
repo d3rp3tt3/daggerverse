@@ -1,6 +1,6 @@
 {
-  "name": "typescript-ci",
-  "sdk": "typescript",
+  "name": "python-ci",
+  "sdk": "python",
   "dependencies": [
     {
       "name": "node",

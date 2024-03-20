@@ -1,43 +1,70 @@
-/**
- * A generated module for TypescriptCi functions
- *
- * This module has been generated via dagger init and serves as a reference to
- * basic module structure as you get started with Dagger.
- *
- * Two functions have been pre-created. You can modify, delete, or add to them,
- * as needed. They demonstrate usage of arguments and return types using simple
- * echo and grep commands. The functions can be called from the dagger CLI or
- * from one of the SDKs.
- *
- * The first line in this comment block is a short description line and the
- * rest is a long description with more detail on the module's purpose or usage,
- * if appropriate. All modules should have a short description.
- */
+/* Simple module to test the CI/CD pipeline with TypeScript */
+/* No long description needed */
 
-import { dag, Container, Directory, object, func } from "@dagger.io/dagger"
+import {
+  dag,
+  Container,
+  Directory,
+  Service,
+  object,
+  func,
+} from "@dagger.io/dagger"
 
 @object()
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class TypescriptCi {
-  /**
-   * Returns a container that echoes whatever string argument is provided
-   */
+  // create a service from the production image
   @func()
-  containerEcho(stringArg: string): Container {
-    return dag.container().from("alpine:latest").withExec(["echo", stringArg])
+  serve(source: Directory): Service {
+    return this.package(source).asService()
   }
 
-  /**
-   * Returns lines that match a pattern in the files of the provided Directory
-   */
+  // publish an image
   @func()
-  async grepDir(directoryArg: Directory, pattern: string): Promise<string> {
+  async publish(source: Directory): Promise<string> {
+    return await this.package(source).publish(
+      "ttl.sh/myapp-" + Math.floor(Math.random() * 10000000),
+    )
+  }
+
+  // create a production image
+  @func()
+  package(source: Directory): Container {
     return dag
       .container()
-      .from("alpine:latest")
-      .withMountedDirectory("/mnt", directoryArg)
-      .withWorkdir("/mnt")
-      .withExec(["grep", "-R", pattern, "."])
+      .from("nginx:1.25-alpine")
+      .withDirectory("/usr/share/nginx/html", this.build(source))
+      .withExposedPort(80)
+  }
+
+  // create a production build
+  @func()
+  build(source: Directory): Directory {
+    return dag
+      .node()
+      .withContainer(this.buildBaseImage(source))
+      .build()
+      .container()
+      .directory("./dist")
+  }
+
+  // run unit tests
+  @func()
+  async test(source: Directory): Promise<string> {
+    return await dag
+      .node()
+      .withContainer(this.buildBaseImage(source))
+      .run(["run", "test:unit", "run"])
       .stdout()
+  }
+
+  // build base image
+  buildBaseImage(source: Directory): Container {
+    return dag
+      .node()
+      .withVersion("21")
+      .withNpm()
+      .withSource(source)
+      .install([])
+      .container()
   }
 }

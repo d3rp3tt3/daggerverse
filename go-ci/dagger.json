@@ -1,6 +1,6 @@
 {
-  "name": "typescript-ci",
-  "sdk": "typescript",
+  "name": "go-ci",
+  "sdk": "go",
   "dependencies": [
     {
       "name": "node",
