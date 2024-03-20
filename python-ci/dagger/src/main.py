@@ -3,12 +3,47 @@
 Includes functions for building and testing a Node app. 
 """
 
+import random
+
 import dagger
 from dagger import dag, function, object_type
 
 
 @object_type
 class PythonCi:
+
+    @function
+    def serve(self, source: dagger.Directory) -> dagger.Service:
+        """Create a service from the production image"""
+        return self.package(source).as_service()
+
+    @function
+    async def publish(self, source: dagger.Directory) -> str:
+        """Publish an image"""
+        return await self.package(source).publish(
+            f"ttl.sh/myapp-{random.randrange(10 ** 8)}"
+        )
+
+    def package(self, source: dagger.Directory) -> dagger.Container:
+        """Create a production image"""
+        return (
+            dag.container()
+            .from_("nginx:1.25-alpine")
+            .with_directory("/usr/share/nginx/html", self.build(source))
+            .with_exposed_port(80)
+        )
+
+    @function
+    def build(self, source: dagger.Directory) -> dagger.Directory:
+        """Create a production build"""
+        return (
+            dag.node()
+            .with_container(self.build_base_image(source))
+            .build()
+            .container()
+            .directory("./dist")
+        )
+
     @function
     async def test(self, source: dagger.Directory) -> str:
         """Run unit tests"""
