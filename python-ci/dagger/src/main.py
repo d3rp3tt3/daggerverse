@@ -23,7 +23,7 @@ class PythonCi:
         """Build base image"""
         return (
             dag.node()
-            .with_version("12")
+            .with_version("21")
             .with_npm()
             .with_source(source)
             .install([])
