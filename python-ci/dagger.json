@@ -1,0 +1,12 @@
+{
+  "name": "python-ci",
+  "sdk": "python",
+  "dependencies": [
+    {
+      "name": "node",
+      "source": "github.com/quartz-technology/daggerverse/node@3b177a82780bf2dfe0f148e90608007cb1312e3c"
+    }
+  ],
+  "source": "dagger",
+  "engineVersion": "v0.10.2"
+}
