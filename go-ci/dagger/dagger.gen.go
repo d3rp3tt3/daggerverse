@@ -31,6 +31,9 @@ type DirectoryID = dagger.DirectoryID
 // The `EnvVariableID` scalar type represents an identifier for an object of type EnvVariable.
 type EnvVariableID = dagger.EnvVariableID
 
+// The `EslintID` scalar type represents an identifier for an object of type Eslint.
+type EslintID = dagger.EslintID
+
 // The `FieldTypeDefID` scalar type represents an identifier for an object of type FieldTypeDef.
 type FieldTypeDefID = dagger.FieldTypeDefID
 
@@ -249,6 +252,14 @@ type DirectoryWithNewFileOpts = dagger.DirectoryWithNewFileOpts
 // An environment variable name and value.
 type EnvVariable = dagger.EnvVariable
 
+type Eslint = dagger.Eslint
+
+// EslintLintOpts contains options for Eslint.Lint
+type EslintLintOpts = dagger.EslintLintOpts
+
+// EslintRunOpts contains options for Eslint.Run
+type EslintRunOpts = dagger.EslintRunOpts
+
 // A definition of a field on a custom object defined in a Module.
 //
 // A field on an object has a static value, as opposed to a function on an object whose value is computed by invoking code (and can accept arguments).
@@ -354,6 +365,9 @@ type ContainerOpts = dagger.ContainerOpts
 
 // DirectoryOpts contains options for Client.Directory
 type DirectoryOpts = dagger.DirectoryOpts
+
+// EslintOpts contains options for Client.Eslint
+type EslintOpts = dagger.EslintOpts
 
 // GitOpts contains options for Client.Git
 type GitOpts = dagger.GitOpts
@@ -514,6 +528,20 @@ func convertSlice[I any, O any](in []I, f func(I) O) []O {
 	return out
 }
 
+func (r GoCi) MarshalJSON() ([]byte, error) {
+	var concrete struct{}
+	return json.Marshal(&concrete)
+}
+
+func (r *GoCi) UnmarshalJSON(bs []byte) error {
+	var concrete struct{}
+	err := json.Unmarshal(bs, &concrete)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -573,8 +601,111 @@ func main() {
 
 func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName string, inputArgs map[string][]byte) (_ any, err error) {
 	switch parentName {
+	case "GoCi":
+		switch fnName {
+		case "Serve":
+			var parent GoCi
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var source *Directory
+			if inputArgs["source"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["source"]), &source)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg source", err))
+				}
+			}
+			return (*GoCi).Serve(&parent, source), nil
+		case "Publish":
+			var parent GoCi
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var source *Directory
+			if inputArgs["source"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["source"]), &source)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg source", err))
+				}
+			}
+			return (*GoCi).Publish(&parent, ctx, source)
+		case "Package":
+			var parent GoCi
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var source *Directory
+			if inputArgs["source"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["source"]), &source)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg source", err))
+				}
+			}
+			return (*GoCi).Package(&parent, source), nil
+		case "Build":
+			var parent GoCi
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var source *Directory
+			if inputArgs["source"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["source"]), &source)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg source", err))
+				}
+			}
+			return (*GoCi).Build(&parent, source), nil
+		case "Test":
+			var parent GoCi
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var source *Directory
+			if inputArgs["source"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["source"]), &source)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg source", err))
+				}
+			}
+			return (*GoCi).Test(&parent, ctx, source)
+		default:
+			return nil, fmt.Errorf("unknown function %s", fnName)
+		}
 	case "":
-		return dag.Module(), nil
+		return dag.Module().
+			WithDescription("A basic module written in Go to build a base image for a Node.js application.\nThe module is written in Go and uses Dagger functions to define the build steps.\n").
+			WithObject(
+				dag.TypeDef().WithObject("GoCi").
+					WithFunction(
+						dag.Function("Serve",
+							dag.TypeDef().WithObject("Service")).
+							WithDescription("create a service from the production image").
+							WithArg("source", dag.TypeDef().WithObject("Directory"))).
+					WithFunction(
+						dag.Function("Publish",
+							dag.TypeDef().WithKind(StringKind)).
+							WithDescription("publish an image").
+							WithArg("source", dag.TypeDef().WithObject("Directory"))).
+					WithFunction(
+						dag.Function("Package",
+							dag.TypeDef().WithObject("Container")).
+							WithDescription("create a production image").
+							WithArg("source", dag.TypeDef().WithObject("Directory"))).
+					WithFunction(
+						dag.Function("Build",
+							dag.TypeDef().WithObject("Directory")).
+							WithDescription("create a production build").
+							WithArg("source", dag.TypeDef().WithObject("Directory"))).
+					WithFunction(
+						dag.Function("Test",
+							dag.TypeDef().WithKind(StringKind)).
+							WithDescription("run unit tests").
+							WithArg("source", dag.TypeDef().WithObject("Directory")))), nil
 	default:
 		return nil, fmt.Errorf("unknown object %s", parentName)
 	}

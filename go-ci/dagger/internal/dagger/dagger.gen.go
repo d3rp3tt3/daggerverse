@@ -120,6 +120,9 @@ type DirectoryID string
 // The `EnvVariableID` scalar type represents an identifier for an object of type EnvVariable.
 type EnvVariableID string
 
+// The `EslintID` scalar type represents an identifier for an object of type Eslint.
+type EslintID string
+
 // The `FieldTypeDefID` scalar type represents an identifier for an object of type FieldTypeDef.
 type FieldTypeDefID string
 
@@ -2321,6 +2324,175 @@ func (r *EnvVariable) Value(ctx context.Context) (string, error) {
 		return *r.value, nil
 	}
 	q := r.query.Select("value")
+
+	var response string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx)
+}
+
+type Eslint struct {
+	query *querybuilder.Selection
+
+	id          *EslintID
+	lint        *string
+	nodeVersion *string
+	version     *string
+}
+
+func (r *Eslint) WithGraphQLQuery(q *querybuilder.Selection) *Eslint {
+	return &Eslint{
+		query: q,
+	}
+}
+
+// Return a container with eslint installed in it.
+//
+// Example usage: `dagger --files=. call container terminal`
+func (r *Eslint) Container() *Container {
+	q := r.query.Select("container")
+
+	return &Container{
+		query: q,
+	}
+}
+
+// The files to lint.
+func (r *Eslint) Files() *Directory {
+	q := r.query.Select("files")
+
+	return &Directory{
+		query: q,
+	}
+}
+
+// Lint the files with auto fix and returns the result directory
+//
+// Example usage: `dagger --files=src call fix -o src`
+func (r *Eslint) Fix() *Directory {
+	q := r.query.Select("fix")
+
+	return &Directory{
+		query: q,
+	}
+}
+
+// A unique identifier for this Eslint.
+func (r *Eslint) ID(ctx context.Context) (EslintID, error) {
+	if r.id != nil {
+		return *r.id, nil
+	}
+	q := r.query.Select("id")
+
+	var response EslintID
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx)
+}
+
+// XXX_GraphQLType is an internal function. It returns the native GraphQL type name
+func (r *Eslint) XXX_GraphQLType() string {
+	return "Eslint"
+}
+
+// XXX_GraphQLIDType is an internal function. It returns the native GraphQL type name for the ID of this object
+func (r *Eslint) XXX_GraphQLIDType() string {
+	return "EslintID"
+}
+
+// XXX_GraphQLID is an internal function. It returns the underlying type ID
+func (r *Eslint) XXX_GraphQLID(ctx context.Context) (string, error) {
+	id, err := r.ID(ctx)
+	if err != nil {
+		return "", err
+	}
+	return string(id), nil
+}
+
+func (r *Eslint) MarshalJSON() ([]byte, error) {
+	id, err := r.ID(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(id)
+}
+func (r *Eslint) UnmarshalJSON(bs []byte) error {
+	var id string
+	err := json.Unmarshal(bs, &id)
+	if err != nil {
+		return err
+	}
+	*r = *dag.LoadEslintFromID(EslintID(id))
+	return nil
+}
+
+// EslintLintOpts contains options for Eslint.Lint
+type EslintLintOpts struct {
+	Args []string
+}
+
+// Lint the files and return the result
+//
+// Example usage: `dagger --files=. call lint`
+func (r *Eslint) Lint(ctx context.Context, opts ...EslintLintOpts) (string, error) {
+	if r.lint != nil {
+		return *r.lint, nil
+	}
+	q := r.query.Select("lint")
+	for i := len(opts) - 1; i >= 0; i-- {
+		// `args` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Args) {
+			q = q.Arg("args", opts[i].Args)
+		}
+	}
+
+	var response string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx)
+}
+
+// The version of node to use (default to: 21-alpine3.18).
+func (r *Eslint) NodeVersion(ctx context.Context) (string, error) {
+	if r.nodeVersion != nil {
+		return *r.nodeVersion, nil
+	}
+	q := r.query.Select("nodeVersion")
+
+	var response string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx)
+}
+
+// EslintRunOpts contains options for Eslint.Run
+type EslintRunOpts struct {
+	Args []string
+}
+
+// Return the container with the linter executed in it.
+//
+// Example usage: `dagger --files=. call run stdout`
+func (r *Eslint) Run(opts ...EslintRunOpts) *Container {
+	q := r.query.Select("run")
+	for i := len(opts) - 1; i >= 0; i-- {
+		// `args` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Args) {
+			q = q.Arg("args", opts[i].Args)
+		}
+	}
+
+	return &Container{
+		query: q,
+	}
+}
+
+// The version of eslint to use (default to: 8.56.0).
+func (r *Eslint) Version(ctx context.Context) (string, error) {
+	if r.version != nil {
+		return *r.version, nil
+	}
+	q := r.query.Select("version")
 
 	var response string
 
@@ -5559,6 +5731,33 @@ func (r *Client) Directory(opts ...DirectoryOpts) *Directory {
 	}
 }
 
+// EslintOpts contains options for Client.Eslint
+type EslintOpts struct {
+	Version string
+
+	NodeVersion string
+}
+
+func (r *Client) Eslint(files *Directory, opts ...EslintOpts) *Eslint {
+	assertNotNil("files", files)
+	q := r.query.Select("eslint")
+	for i := len(opts) - 1; i >= 0; i-- {
+		// `version` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Version) {
+			q = q.Arg("version", opts[i].Version)
+		}
+		// `nodeVersion` optional argument
+		if !querybuilder.IsZeroValue(opts[i].NodeVersion) {
+			q = q.Arg("nodeVersion", opts[i].NodeVersion)
+		}
+	}
+	q = q.Arg("files", files)
+
+	return &Eslint{
+		query: q,
+	}
+}
+
 // Deprecated: Use LoadFileFromID instead.
 func (r *Client) File(id FileID) *File {
 	q := r.query.Select("file")
@@ -5700,6 +5899,16 @@ func (r *Client) LoadEnvVariableFromID(id EnvVariableID) *EnvVariable {
 	q = q.Arg("id", id)
 
 	return &EnvVariable{
+		query: q,
+	}
+}
+
+// Load a Eslint from its ID.
+func (r *Client) LoadEslintFromID(id EslintID) *Eslint {
+	q := r.query.Select("loadEslintFromID")
+	q = q.Arg("id", id)
+
+	return &Eslint{
 		query: q,
 	}
 }
