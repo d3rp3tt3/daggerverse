@@ -53,6 +53,15 @@ class PythonCi:
             .run(["run", "test:unit", "run"])
             .stdout()
         )
+    @function 
+    async def lint(self, source: dagger.Directory) -> str:
+        """Run linter"""
+        return await (
+            dag.node()
+            .with_container(self.build_base_image(source))
+            .run(["run", "lint"])
+            .stdout()
+        )
 
     def build_base_image(self, source: dagger.Directory) -> dagger.Container:
         """Build base image"""
